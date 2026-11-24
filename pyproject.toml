@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dpairip"
+version = "1.0.0"
+description = "PairIP (VMRunner) unpacker and repacker for Android APK/APKS bundles, written in pure Python"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "baba01hacker" }]
+keywords = [
+    "android",
+    "apk",
+    "dex",
+    "pairip",
+    "pairip-bypass",
+    "vmrunner",
+    "reverse-engineering",
+    "repack",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Disassemblers",
+]
+dependencies = []
+
+[project.optional-dependencies]
+capture = ["frida>=16.0,<17"]
+
+[project.scripts]
+dpairip = "dpairip.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Baba01hacker666/dpairip"
+Source = "https://github.com/Baba01hacker666/dpairip"
+Issues = "https://github.com/Baba01hacker666/dpairip/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dpairip"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/dpairip", "tests", "docs", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

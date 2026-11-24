@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+build/
+dist/
+.venv/
+venv/
+*.apk
+*.apks
+*.xapk
+*.json
+!pyproject.toml
+junk_classes.txt
+pairip.json
