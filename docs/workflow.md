@@ -50,15 +50,19 @@ dpairip --capture com.example.app -j work/junk_classes.txt -o work/pairip.json
 Requires `frida-server` 16.x running as root on the device. This path never
 runs a modified APK, so native anti-tamper sees the original app.
 
-## 2c. GitHub-hosted emulator (experimental)
+## 2c. Why no GitHub-hosted emulator
 
-`.github/workflows/capture.yml` runs the original signed splits on a rooted
-x86_64 emulator (Google Play image, which ships ARM translation), starts
-frida-server, and uploads `pairip.json` as an artifact. Dispatch it with the
-XAPK URL and package name. GitHub's aarch64 runners cannot install the Android
-emulator at all, hence x86_64. This remains experimental: ARM translation may
-not support the protected app's native library, and PairIP may refuse to start
-inside an emulator.
+This was tested and does not work for ARM-only PairIP builds:
+
+- GitHub's aarch64 runners cannot install the Android emulator package at all.
+- On `ubuntu-latest` x86_64 with KVM, the emulator boots and the app installs,
+  but its ARM64 `libpairipcore.so` dies under ARM translation with
+  `Fatal signal 11 (SIGSEGV), code 128 (SI_KERNEL), fault addr 0x0`, after
+  `Unexpected CPU variant for X86 using defaults: x86_64`. The process is gone
+  before Frida can attach.
+
+A rooted physical device (Frida flow) or a normal device running the non-root
+patched build is therefore required. No emulator workflow is shipped.
 
 ## 3. Translate
 
