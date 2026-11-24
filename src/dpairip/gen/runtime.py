@@ -339,8 +339,13 @@ def dumper_class(junk_classes: Sequence[str]) -> ClassDef:
     )
 
 
-def proxy_application_class(parent: str) -> ClassDef:
-    """Thin ``Application`` subclass that dumps the dictionary after startup."""
+def proxy_application_class(parent: str, load_library: Optional[str] = None) -> ClassDef:
+    """Thin ``Application`` subclass that dumps the dictionary after startup.
+
+    ``load_library`` loads a bundled native library (e.g. a renamed Frida
+    Gadget) from the static initializer, before the protector's
+    ``attachBaseContext`` runs.
+    """
 
     constructor = MethodBuilder(1, 1)
     constructor.invoke_direct(method_ref(parent, "<init>", "()V"), 0)
@@ -356,10 +361,28 @@ def proxy_application_class(parent: str) -> ClassDef:
     create.invoke_static(method_ref(DUMPER, "dump", "(Landroid/content/Context;)V"), 0)
     create.return_void()
 
+    direct = [make_method("<init>", Proto.parse("()V"),
+                          ACC_PUBLIC | ACC_CONSTRUCTOR, constructor)]
+    if load_library:
+        bootstrap = MethodBuilder(2, 0, 1)
+        bootstrap.label("start")
+        bootstrap.const_string(0, load_library)
+        bootstrap.invoke_static(method_ref("Ljava/lang/System;", "loadLibrary",
+                                           "(Ljava/lang/String;)V"), 0)
+        bootstrap.label("try_end")
+        bootstrap.goto("done")
+        bootstrap.label("catch")
+        bootstrap.move_exception(0)
+        bootstrap.invoke_virtual(method_ref("Ljava/lang/Throwable;", "printStackTrace", "()V"), 0)
+        bootstrap.label("done")
+        bootstrap.return_void()
+        bootstrap.protect("start", "try_end", [(None, "catch")])
+        direct.append(make_method("<clinit>", Proto.parse("()V"),
+                                  ACC_STATIC | ACC_CONSTRUCTOR, bootstrap))
+
     return make_class(
         PROXY, parent, ACC_PUBLIC,
-        direct_methods=[make_method("<init>", Proto.parse("()V"),
-                                    ACC_PUBLIC | ACC_CONSTRUCTOR, constructor)],
+        direct_methods=direct,
         virtual_methods=[
             make_method("attachBaseContext", Proto.parse("(Landroid/content/Context;)V"),
                         ACC_PROTECTED, attach),

@@ -54,6 +54,11 @@ Sign and zipalign translated APKs before installing; dpairip does not sign.
     --non-root        default: shared-storage dump + debuggable manifest
     --root-flow       private dump only, no manifest additions
     --pull-dump PKG   optional: adb pull the dump from a PC workflow
+    --embed-gadget SO bundle a renamed Frida Gadget into the logging build
+    --gadget-connect ADDR  connect to an embedded gadget (HOST:PORT)
+    --gadget-abi ABI  gadget ABI (default arm64-v8a)
+    --gadget-name NAME   renamed library name (default dpairip)
+    --gadget-port PORT   gadget listen port (default 27042)
     --no-crc          do not restore original dex CRC fields
     --no-strip-integrity  keep PairIP's integrity call in the logging build
 -v, --version         print the version

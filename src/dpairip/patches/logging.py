@@ -9,7 +9,7 @@ often checks its own code before the VM has started.
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 from .. import axml, log
 from ..apks import Module
@@ -97,7 +97,7 @@ def _strip_integrity(module: Module) -> int:
 
 
 def apply(module: Module, *, strip_integrity: bool = True,
-          non_root: bool = True) -> dict:
+          non_root: bool = True, gadget_lib: Optional[str] = None) -> dict:
     """Install the dictionary dumper and return a small result summary."""
 
     junk = find_junk_classes(module)
@@ -115,7 +115,8 @@ def apply(module: Module, *, strip_integrity: bool = True,
     if parent == runtime.PROXY:
         parent = "Landroid/app/Application;"
 
-    classes = [runtime.dumper_class(junk), runtime.proxy_application_class(parent)]
+    classes = [runtime.dumper_class(junk),
+               runtime.proxy_application_class(parent, load_library=gadget_lib)]
     dex_name = module.add_dex(writer.write(DexIR(classes)))
 
     if document is not None:

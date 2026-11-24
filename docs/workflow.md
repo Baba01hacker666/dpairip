@@ -50,7 +50,41 @@ dpairip --capture com.example.app -j work/junk_classes.txt -o work/pairip.json
 Requires `frida-server` 16.x running as root on the device. This path never
 runs a modified APK, so native anti-tamper sees the original app.
 
-## 2c. Why no GitHub-hosted emulator
+## 2c. Embedded Frida Gadget (no root, no adb)
+
+This route runs Frida **inside the app process** and hides it behind a renamed
+native library. Download the matching Gadget from Frida releases
+(`frida-gadget-16.7.19-android-arm64.so.xz`), then:
+
+```bash
+dpairip -i app.apks --embed-gadget /path/to/frida-gadget-android-arm64.so -o work
+```
+
+dpairip installs it as `lib/arm64-v8a/libdpairip.so` with a sibling
+`libdpairip.config.so` telling Gadget to listen on `127.0.0.1:27042` and to
+**wait** before releasing the app. The generated Application loads it from
+`<clinit>`, before PairIP's native library initialises.
+
+Sign and install `work/app_patched.apk`, launch it, then on the device itself:
+
+```bash
+pip install frida==16.7.19
+dpairip --gadget-connect 127.0.0.1:27042 -j work/junk_classes.txt -o work/pairip.json
+```
+
+Connecting loads dpairip's evasion script **before** the app continues. It
+masks marker strings in `strcmp`/`strncmp`/`strcasecmp`, spoofs
+`__system_property_get` for `ro.debuggable`, logs every `dlopen`, then reflects
+over the junk classes and writes the dictionary. The `dlopen` log is printed
+with `--verbose` so the hooks can be adapted if a specific app checks
+something else.
+
+This is a starting point for anti-detection, not a guarantee: PairIP builds
+check strings on the stack and uses `dl_iterate_phdr`/`readdir`, so some builds
+may need additional hooks. The library-name rename alone defeats simple
+"loaded library contains frida" checks.
+
+## 2d. Why no GitHub-hosted emulator
 
 All runner architectures were tested against a real ARM-only PairIP target;
 none can run the protected native library:

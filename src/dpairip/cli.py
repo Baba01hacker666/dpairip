@@ -48,6 +48,13 @@ def _parser() -> argparse.ArgumentParser:
                         help="capture pairip.json from a running app using Frida")
     parser.add_argument("--pull-dump", metavar="PACKAGE",
                         help="adb pull pairip.json written by a non-root logging build")
+    parser.add_argument("--embed-gadget", metavar="SO",
+                        help="bundle a renamed Frida Gadget into the logging build")
+    parser.add_argument("--gadget-abi", default="arm64-v8a", help="gadget ABI (default: arm64-v8a)")
+    parser.add_argument("--gadget-name", default="dpairip", help="renamed gadget library name")
+    parser.add_argument("--gadget-port", type=int, default=27042, help="gadget listen port")
+    parser.add_argument("--gadget-connect", metavar="HOST:PORT",
+                        help="connect to an embedded Gadget and dump pairip.json")
     parser.add_argument("--non-root", action="store_true",
                         help="(default) shared-storage dump + debuggable manifest")
     parser.add_argument("--root-flow", action="store_true",
@@ -139,6 +146,21 @@ def _run_pull(args: argparse.Namespace) -> int:
         return 1
 
 
+def _run_gadget_connect(args: argparse.Namespace) -> int:
+    from .capture import connect_gadget
+
+    junk = args.junk or os.path.join(os.getcwd(), "junk_classes.txt")
+    output = args.output or os.path.join(os.getcwd(), "pairip.json")
+    if not os.path.isfile(junk):
+        log.error(f"junk class list not found: {junk}")
+        return 2
+    result = connect_gadget(args.gadget_connect, junk, output)
+    log.build(f"dictionary written to {output}")
+    for message in result["messages"][-5:]:
+        log.debug(message)
+    return 0
+
+
 def run(argv: Optional[Sequence[str]] = None) -> int:
     args = _parser().parse_args(argv)
     log.configure(verbose=args.verbose, colour=False if args.no_color else None)
@@ -153,6 +175,8 @@ def run(argv: Optional[Sequence[str]] = None) -> int:
         return _run_capture(args)
     if args.pull_dump:
         return _run_pull(args)
+    if args.gadget_connect:
+        return _run_gadget_connect(args)
     if not args.input:
         log.error("missing option --input")
         return 2
@@ -184,9 +208,21 @@ def run(argv: Optional[Sequence[str]] = None) -> int:
             result = patch_translation(module, args.translate)
             output = os.path.join(output_dir, stem + "_translated.apk")
         else:
+            gadget_lib = None
+            if args.embed_gadget:
+                if not os.path.isfile(args.embed_gadget):
+                    log.error(f"gadget binary not found: {args.embed_gadget}")
+                    return 2
+                gadget_lib = args.gadget_name
             result = patch_logging(module,
                                    strip_integrity=not args.no_strip_integrity,
-                                   non_root=not args.root_flow)
+                                   non_root=not args.root_flow,
+                                   gadget_lib=gadget_lib)
+            if gadget_lib:
+                from .patches.gadget import embed_gadget
+                info = embed_gadget(module, args.embed_gadget, abi=args.gadget_abi,
+                                    libname=gadget_lib, port=args.gadget_port)
+                log.build(f"embedded renamed Frida Gadget as {info['library']}")
             output = os.path.join(output_dir, stem + "_patched.apk")
 
         module.save(output)
