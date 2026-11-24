@@ -4,6 +4,10 @@ PKG="$1"
 
 adb root
 sleep 2
+if ! adb shell id | grep -q 'uid=0'; then
+  echo "ERROR: adb root is not available; frida-server cannot attach" >&2
+  exit 1
+fi
 
 # Frida 16.x still has the Java bridge; 17.x removed it.
 FRIDA_VERSION=16.7.19

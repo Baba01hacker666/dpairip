@@ -50,7 +50,7 @@ jobs:
         with:
           api-level: 30
           arch: x86_64
-          target: google_apis_playstore
+          target: google_apis
           disable-linux-hw-accel: ${{ env.HW_ACCEL }}
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           emulator-boot-timeout: 600
