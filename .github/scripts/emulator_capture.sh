@@ -28,8 +28,21 @@ PY
 adb install-multiple work/splits/*.apk
 
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
-sleep 20   # let PairIP finish VM init and populate the junk fields
+sleep 30   # let PairIP finish VM init and populate the junk fields
+
+echo "=== process check ==="
+adb shell ps -A | grep -i "$PKG" || echo "NO PROCESS for $PKG"
+echo "=== relevant logcat ==="
+adb logcat -d -t 500 | grep -iE 'tempmail|pairip|FATAL|AndroidRuntime|dlopen|cannot find|abi' | tail -100 || true
 
 python -m pip install "frida==${FRIDA_VERSION}"
-python -m dpairip.cli --capture "$PKG" -j work/junk_classes.txt -o work/pairip.json
+ok=0
+for attempt in 1 2 3; do
+  if python -m dpairip.cli --capture "$PKG" -j work/junk_classes.txt -o work/pairip.json; then
+    ok=1
+    break
+  fi
+  sleep 10
+done
+test "$ok" -eq 1
 test -s work/pairip.json
