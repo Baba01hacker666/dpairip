@@ -53,10 +53,12 @@ runs a modified APK, so native anti-tamper sees the original app.
 ## 2c. GitHub-hosted emulator (experimental)
 
 `.github/workflows/capture.yml` runs the original signed splits on a rooted
-`arm64-v8a` emulator, starts frida-server, and uploads `pairip.json` as an
-artifact. Dispatch it with the XAPK URL and package name. This is untested on a
-real runner and depends on `/dev/kvm` on the arm64 runner; PairIP may also
-refuse to start inside an emulator.
+x86_64 emulator (Google Play image, which ships ARM translation), starts
+frida-server, and uploads `pairip.json` as an artifact. Dispatch it with the
+XAPK URL and package name. GitHub's aarch64 runners cannot install the Android
+emulator at all, hence x86_64. This remains experimental: ARM translation may
+not support the protected app's native library, and PairIP may refuse to start
+inside an emulator.
 
 ## 3. Translate
 

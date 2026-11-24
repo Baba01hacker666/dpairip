@@ -8,7 +8,7 @@ sleep 2
 # Frida 16.x still has the Java bridge; 17.x removed it.
 FRIDA_VERSION=16.7.19
 curl -L -o /tmp/frida-server.xz \
-  "https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/frida-server-${FRIDA_VERSION}-android-arm64.xz"
+  "https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/frida-server-${FRIDA_VERSION}-android-x86_64.xz"
 xz -dc /tmp/frida-server.xz > /tmp/frida-server
 adb push /tmp/frida-server /data/local/tmp/frida-server
 adb shell chmod 755 /data/local/tmp/frida-server

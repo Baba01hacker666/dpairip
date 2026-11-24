@@ -18,7 +18,7 @@ on:
 
 jobs:
   capture:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
@@ -49,8 +49,8 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
-          arch: arm64-v8a
-          target: google_apis
+          arch: x86_64
+          target: google_apis_playstore
           disable-linux-hw-accel: ${{ env.HW_ACCEL }}
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           emulator-boot-timeout: 600
