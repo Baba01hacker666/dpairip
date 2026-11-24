@@ -32,8 +32,8 @@ jobs:
           api-level: 34
           arch: arm64-v8a
           target: google_apis
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel tcg
+          emulator-boot-timeout: 2400
           script: bash .github/scripts/emulator_capture.sh "${{ inputs.package }}"
 
       - name: Upload dictionary
