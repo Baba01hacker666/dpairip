@@ -1,0 +1,44 @@
+name: capture pairip.json (QEMU-emulated ARM64 Android)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apks_url:
+        description: Direct URL to the target .xapk / .apks
+        required: true
+      package:
+        description: Application id, e.g. com.tempmail
+        required: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download target and build junk list
+        run: |
+          set -e
+          python -m pip install -e .
+          curl -L "${{ inputs.apks_url }}" -o target.xapk
+          python -m dpairip.cli -i target.xapk -o work --no-color
+          test -s work/junk_classes.txt
+
+      - name: ARM64 guest emulator + Frida capture
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: arm64-v8a
+          target: google_apis
+          disable-linux-hw-accel: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel off
+          emulator-boot-timeout: 2400
+          script: bash .github/scripts/emulator_capture.sh "${{ inputs.package }}"
+
+      - name: Upload dictionary
+        uses: actions/upload-artifact@v4
+        with:
+          name: pairip-json
+          path: work/pairip.json
+          if-no-files-found: error
