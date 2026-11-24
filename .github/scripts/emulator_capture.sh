@@ -41,10 +41,10 @@ adb shell ps -A | grep -i "$PKG" || echo "NO PROCESS for $PKG"
 echo "=== relevant logcat ==="
 adb logcat -d -t 500 | grep -iE 'tempmail|pairip|FATAL|AndroidRuntime|dlopen|cannot find|abi' | tail -100 || true
 
-python3 -m pip install "frida==${FRIDA_VERSION}"
+.venv/bin/python -m pip install "frida==${FRIDA_VERSION}"
 ok=0
 for attempt in 1 2 3; do
-  if python3 -m dpairip.cli --capture "$PKG" -j work/junk_classes.txt -o work/pairip.json; then
+  if .venv/bin/python -m dpairip.cli --capture "$PKG" -j work/junk_classes.txt -o work/pairip.json; then
     ok=1
     break
   fi

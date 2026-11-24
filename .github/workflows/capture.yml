@@ -20,9 +20,10 @@ jobs:
       - name: Download target and build junk list
         run: |
           set -e
-          python3 -m pip install -e .
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -e .
           curl -L "${{ inputs.apks_url }}" -o target.xapk
-          python3 -m dpairip.cli -i target.xapk -o work --no-color
+          .venv/bin/python -m dpairip.cli -i target.xapk -o work --no-color
           test -s work/junk_classes.txt
 
       - name: ARM64 emulator + Frida capture
