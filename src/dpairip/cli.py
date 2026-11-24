@@ -219,10 +219,17 @@ def run(argv: Optional[Sequence[str]] = None) -> int:
                                    non_root=not args.root_flow,
                                    gadget_lib=gadget_lib)
             if gadget_lib:
+                from .manifest import package_name
                 from .patches.gadget import embed_gadget
-                info = embed_gadget(module, args.embed_gadget, abi=args.gadget_abi,
-                                    libname=gadget_lib, port=args.gadget_port)
-                log.build(f"embedded renamed Frida Gadget as {info['library']}")
+                document = module.manifest()
+                package = package_name(document) if document is not None else "unknown"
+                info = embed_gadget(
+                    module, args.embed_gadget, abi=args.gadget_abi,
+                    libname=gadget_lib, port=args.gadget_port,
+                    junk=result["junk"],
+                    output=f"/data/data/{package}/files/pairip.json",
+                )
+                log.build(f"embedded renamed Frida Gadget + script as {info['library']}")
             output = os.path.join(output_dir, stem + "_patched.apk")
 
         module.save(output)

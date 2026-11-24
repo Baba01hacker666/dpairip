@@ -15,7 +15,8 @@ def test_embed_renamed_gadget(fake_pairip_apk, tmp_path):
     module = Module.load(str(fake_pairip_apk))
     patch_logging(module, gadget_lib="dpairip")
     info = embed_gadget(module, str(gadget), abi="arm64-v8a",
-                        libname="dpairip", port=27042)
+                        libname="dpairip", junk=["a.a", "b.b"],
+                        output="/data/data/com.test/files/pairip.json")
 
     out = tmp_path / "gadget.apk"
     module.save(str(out))
@@ -23,10 +24,14 @@ def test_embed_renamed_gadget(fake_pairip_apk, tmp_path):
 
     assert apk.has(info["library"])
     assert apk.has(info["config"])
+    assert apk.has(info["script"])
     assert apk.get(info["library"]) == gadget.read_bytes()
     config = json.loads(apk.get(info["config"]).decode())
-    assert config["interaction"]["port"] == 27042
-    assert config["interaction"]["on_load"] == "wait"
+    assert config["interaction"]["type"] == "script"
+    assert config["interaction"]["path"] == info["script"].rsplit("/", 1)[-1]
+    script = apk.get(info["script"]).decode()
+    assert "a.a" in script and "b.b" in script
+    assert "/data/data/com.test/files/pairip.json" in script
 
     dex = next(reader.parse(apk.get(name)) for name in apk.dex_names()
                if "Ldpairip/runtime/Application;" in

@@ -132,6 +132,16 @@ def split_name(document: axml.Document) -> str:
     return document.pool.get(attribute.data) if attribute.data_type == axml.TYPE_STRING else ""
 
 
+def package_name(document: axml.Document) -> str:
+    root = document.root
+    if root is None:
+        return ""
+    attribute = root.attribute(document.pool, name="package")
+    if attribute is None:
+        return ""
+    return document.pool.get(attribute.data)
+
+
 def add_permission(document: axml.Document, permission: str) -> bool:
     """Declare a permission if the manifest does not already have it."""
 

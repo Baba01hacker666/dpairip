@@ -42,6 +42,114 @@ Java.perform(function () {
 """
 
 
+_GADGET_SCRIPT = r"""
+// Bundled into lib/<abi>/lib<name>.script.so and loaded by Gadget at startup.
+var JUNK = __JUNK__;
+var MARKERS = ['frida', 'gadget', 'xposed', 'substrate', 'cydia', 'magisk'];
+var OUTPUT = __OUTPUT__;
+
+function matches(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+    for (var i = 0; i < MARKERS.length; i++) {
+        if (lower.indexOf(MARKERS[i]) !== -1) return true;
+    }
+    return false;
+}
+
+function installHooks() {
+    ['strcmp', 'strncmp', 'strcasecmp'].forEach(function (name) {
+        var address = Module.findExportByName(null, name);
+        if (!address) return;
+        Interceptor.attach(address, {
+            onEnter: function (args) {
+                var a = null, b = null;
+                try { a = args[0].readUtf8String(); } catch (e) {}
+                try { b = args[1].readUtf8String(); } catch (e) {}
+                if (matches(a) || matches(b)) this.skip = true;
+            },
+            onLeave: function (retval) { if (this.skip) retval.replace(1); }
+        });
+    });
+    var prop = Module.findExportByName(null, '__system_property_get');
+    if (prop) {
+        Interceptor.attach(prop, {
+            onEnter: function (args) {
+                try {
+                    var name = args[0].readUtf8String();
+                    if (name === 'ro.debuggable' || name === 'ro.secure') this.fix = args[2];
+                } catch (e) {}
+            },
+            onLeave: function (retval) {
+                if (this.fix && retval.toInt32() > 0) {
+                    this.fix.writeUtf8String('0');
+                    retval.replace(1);
+                }
+            }
+        });
+    }
+}
+
+function snapshot() {
+    var result = {};
+    Java.perform(function () {
+        var Modifier = Java.use('java.lang.reflect.Modifier');
+        JUNK.forEach(function (name) {
+            try {
+                var clazz = Java.use(name);
+                var fields = clazz.class.getDeclaredFields();
+                var entry = {type: '', fields: {}};
+                var complete = true;
+                for (var i = 0; i < fields.length; i++) {
+                    try {
+                        var field = fields[i];
+                        if (!Modifier.isStatic(field.getModifiers())) continue;
+                        field.setAccessible(true);
+                        if (!entry.type) entry.type = field.getType().getName();
+                        var value = field.get(null);
+                        if (value === null) complete = false;
+                        entry.fields[field.getName()] = value === null ? null : value.toString();
+                    } catch (e) { complete = false; }
+                }
+                if (complete) result[name] = entry;
+            } catch (e) {}
+        });
+    });
+    return result;
+}
+
+function writeJson(text) {
+    try {
+        var file = new File(OUTPUT, 'w');
+        file.write(text);
+        file.close();
+        console.log('[dpairip] wrote dictionary');
+        return true;
+    } catch (e) {
+        console.log('[dpairip] write failed: ' + e);
+        return false;
+    }
+}
+
+function dumpLoop(attempt) {
+    var result = snapshot();
+    if (Object.keys(result).length > 0 && writeJson(JSON.stringify(result))) return;
+    if (attempt >= 30) {
+        console.log('[dpairip] giving up after 30 attempts');
+        return;
+    }
+    setTimeout(function () { dumpLoop(attempt + 1); }, 2000);
+}
+
+rpc.exports = {
+    init: function (stage, parameters) {
+        installHooks();
+        console.log('[dpairip] gadget script loaded at ' + stage);
+        setTimeout(function () { dumpLoop(0); }, 3000);
+    }
+};
+"""
+
 _EVASION_SCRIPT = r"""
 // Installed before the gadget releases the app (on_load = wait).
 var MARKERS = ['frida', 'gadget', 'xposed', 'substrate', 'cydia', 'magisk'];

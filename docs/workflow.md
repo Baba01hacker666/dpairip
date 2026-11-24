@@ -60,29 +60,37 @@ native library. Download the matching Gadget from Frida releases
 dpairip -i app.apks --embed-gadget /path/to/frida-gadget-android-arm64.so -o work
 ```
 
-dpairip installs it as `lib/arm64-v8a/libdpairip.so` with a sibling
-`libdpairip.config.so` telling Gadget to listen on `127.0.0.1:27042` and to
-**wait** before releasing the app. The generated Application loads it from
-`<clinit>`, before PairIP's native library initialises.
+dpairip installs it as `lib/arm64-v8a/libdpairip.so` with two siblings:
 
-Sign and install `work/app_patched.apk`, launch it, then on the device itself:
+- `libdpairip.config.so` — Gadget **script mode**, pointing at the bundled script
+- `libdpairip.script.so` — the JavaScript, with the junk-class list and output
+  path baked in
+
+No TCP port is opened and no Frida client or root is needed. The generated
+Application loads the renamed Gadget from `<clinit>`, before PairIP's native
+library initialises, so the script's hooks are installed first. The script:
+
+- masks marker strings in `strcmp`/`strncmp`/`strcasecmp`,
+- spoofs `ro.debuggable`/`ro.secure` through `__system_property_get`,
+- waits until the junk fields are populated, then reflects over them and writes
+  the dictionary to `/data/data/<package>/files/pairip.json`.
+
+The Java dumper in the same build also writes the public copy to
+`/sdcard/Download/pairip.json`, which is the one you can read from Termux:
 
 ```bash
-pip install frida==16.7.19
-dpairip --gadget-connect 127.0.0.1:27042 -j work/junk_classes.txt -o work/pairip.json
+# sign + install work/app_patched.apk, launch it, wait for the main screen
+cp /sdcard/Download/pairip.json work/pairip.json
+dpairip -i work/app_merged.apk -t work/pairip.json
 ```
 
-Connecting loads dpairip's evasion script **before** the app continues. It
-masks marker strings in `strcmp`/`strncmp`/`strcasecmp`, spoofs
-`__system_property_get` for `ro.debuggable`, logs every `dlopen`, then reflects
-over the junk classes and writes the dictionary. The `dlopen` log is printed
-with `--verbose` so the hooks can be adapted if a specific app checks
-something else.
-
 This is a starting point for anti-detection, not a guarantee: PairIP builds
-check strings on the stack and uses `dl_iterate_phdr`/`readdir`, so some builds
-may need additional hooks. The library-name rename alone defeats simple
-"loaded library contains frida" checks.
+check strings on the stack and use `dl_iterate_phdr`/`readdir`, so some builds
+may need additional hooks in the bundled script. The library rename defeats
+simple "loaded library contains frida" checks.
+
+`--gadget-connect HOST:PORT` remains available if you prefer a listen-mode
+gadget with a live client, but script mode is the default and needs no port.
 
 ## 2d. Why no GitHub-hosted emulator
 
