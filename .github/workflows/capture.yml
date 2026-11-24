@@ -1,4 +1,4 @@
-name: capture pairip.json (QEMU-emulated ARM64 Android)
+name: capture pairip.json (ARM64 guest on Apple Silicon)
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
 
 jobs:
   capture:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
@@ -20,20 +20,19 @@ jobs:
       - name: Download target and build junk list
         run: |
           set -e
-          python -m pip install -e .
+          python3 -m pip install -e .
           curl -L "${{ inputs.apks_url }}" -o target.xapk
-          python -m dpairip.cli -i target.xapk -o work --no-color
+          python3 -m dpairip.cli -i target.xapk -o work --no-color
           test -s work/junk_classes.txt
 
-      - name: ARM64 guest emulator + Frida capture
+      - name: ARM64 emulator + Frida capture
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 34
           arch: arm64-v8a
           target: google_apis
-          disable-linux-hw-accel: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel off
-          emulator-boot-timeout: 2400
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-boot-timeout: 1200
           script: bash .github/scripts/emulator_capture.sh "${{ inputs.package }}"
 
       - name: Upload dictionary
