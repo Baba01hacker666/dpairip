@@ -28,12 +28,14 @@ jobs:
 
       - name: ARM64 emulator + Frida capture
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 34
           arch: arm64-v8a
           target: google_apis
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -accel off
-          emulator-boot-timeout: 2400
+          emulator-boot-timeout: 3600
           cores: 4
           script: bash .github/scripts/emulator_capture.sh "${{ inputs.package }}"
 
