@@ -52,17 +52,25 @@ runs a modified APK, so native anti-tamper sees the original app.
 
 ## 2c. Why no GitHub-hosted emulator
 
-This was tested and does not work for ARM-only PairIP builds:
+All runner architectures were tested against a real ARM-only PairIP target;
+none can run the protected native library:
 
-- GitHub's aarch64 runners cannot install the Android emulator package at all.
-- On `ubuntu-latest` x86_64 with KVM, the emulator boots and the app installs,
-  but its ARM64 `libpairipcore.so` dies under ARM translation with
-  `Fatal signal 11 (SIGSEGV), code 128 (SI_KERNEL), fault addr 0x0`, after
-  `Unexpected CPU variant for X86 using defaults: x86_64`. The process is gone
-  before Frida can attach.
+- **Linux aarch64 runner**: Google does not publish an `emulator` SDK package
+  for aarch64 Linux — `sdkmanager --install emulator` fails with
+  `Failed to find package 'emulator'`.
+- **Linux x86_64 + KVM**: the emulator boots and the app installs, but the
+  ARM64 `libpairipcore.so` crashes under ARM translation:
+  `Unexpected CPU variant for X86 using defaults: x86_64` followed by
+  `Fatal signal 11 (SIGSEGV), code 128 (SI_KERNEL), fault addr 0x0`.
+- **macOS arm64 runner**: Hypervisor.framework is unavailable inside the
+  GitHub VM (`HVF error: HV_UNSUPPORTED`, `failed to initialize HVF`).
+  `-accel off` plus `ANDROID_I_WANT_MY_TCG=yes` still makes QEMU exit
+  immediately with `QEMU main loop exits abnormally with code 1`, so the
+  TCG fallback cannot boot the ARM64 guest either.
 
-A rooted physical device (Frida flow) or a normal device running the non-root
-patched build is therefore required. No emulator workflow is shipped.
+A physical ARM device is therefore required: rooted with frida-server for the
+stock-app flow, or unmodified root for the default patched build. No emulator
+workflow is shipped.
 
 ## 3. Translate
 
